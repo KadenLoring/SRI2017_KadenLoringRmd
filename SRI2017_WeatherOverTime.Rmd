@@ -1,0 +1,356 @@
+---
+title: "SRI 2017- Weather Over Time"
+author: "Kaden Loring"
+output:
+  html_document: default
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+mentor: Dr. David Quesada
+---
+
+####Required Packages
+```{r}
+suppressMessages(library(tidyverse))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggmap))
+suppressMessages(library(EBImage))
+suppressMessages(library(knitr))
+suppressMessages(library(rmarkdown))
+ #suppressMessages(library(xlsx)) #Used for Data Cleaning
+ #suppressMessages(library(magrittr)) #Used for Data Cleaning
+```
+  
+####Read in Data
+All data sourced from Saint Thomas University Earth Networks weather station located at Biscayne College.
+
+```{r  message=FALSE}
+WL1 <- read.csv("/Users/KadenLoring/Documents/SRI_17/Spreadsheets/SRI_Official_CSV.csv")
+#Preliminary Data Frame with some weather station errors present.
+```
+
+####Cleaning Data
+The weather station data occasionaly records empty (ghost) rows or observations.
+
+```{r  message=FALSE}
+WL2 <- na.omit(WL1) #omits ghost rows
+```  
+
+The data frame, "WL2", still contains some erroneous observations recorded by the weather station which are easily characterized by a consistent fahrenheit temperature reading of 32° (conditions clearly not present in Miami, FL). The errors are likely caused by temporary power outages.
+
+```{r  message=FALSE}
+Error_32 <- WL2$TempF<40 #vector containing row numbers with temperatures less than 40° F; the lowest true temperature over the observed time frame.
+
+which(Error_32) #displays which levels contain "Error_32"
+
+#rows containing Error_32: 35, 10959, 11295, 12100
+
+WL3 <- WL2[-c(35, 10959, 11295, 12100),] #erroneous rows removed from data frame
+```
+
+####Compare Data Frame Pre and Post Cleaning
+Scatter plot of Temperature over the Time Interval for WL1 (uncleaned data) and WL3 (cleaned data). [Notice the outliers that occur at 32° F]
+
+```{r  message=FALSE}
+#Uncleaned Plot
+Temp_1 <- plot(WL1$TimeInterval, WL1$TempF, type = "p", main="Temperature F°", sub = "Measured in 5 minute Time Intervals March 1 - June 4", xlab = "Time Interval", ylab = "Temperature")
+
+Temp_1
+
+#Cleaned Plot
+Temp_3 <- plot(WL3$TimeInterval, WL3$TempF, type = "p", main="Temperature F°", sub = "Measured in 5 minute Time Intervals March 1 - June 4", xlab = "Time Interval", ylab = "Temperature")
+
+Temp_3
+```
+
+####Create Labels for Various Variables
+```{r message=FALSE}
+#Line Plots of ALL Variables
+TimeInt <- WL3$TimeInterval
+Temp <- WL3$TempF
+HumidPerc <- WL3$RelHumidityPerc
+DewPoint <- WL3$DewPointF
+WetBulb <- WL3$WetBulb
+WindDir <- WL3$WindDir
+WindSpeed <- WL3$WindSpeedmph
+WindChill <- WL3$WindChillperHIF
+BaroPres <- WL3$BaroPressureinchHg
+RainRate <- WL3$RainRateInperHr
+RainDay <- WL3$RainDayIn
+LightPerc <- WL3$LightPerc
+TempRate <- WL3$TempRateFperHr.
+HumidRate <- WL3$HumidityRatePercperHr
+PresRate <- WL3$PressureRateinHgperHr.
+Date <- WL3$Time
+```
+
+####Plots 
+
+Define graphical functions.
+
+```{r  message=FALSE}
+#define time labels for x axis
+tendays <- scale_x_continuous(breaks=c(1,2879, 5759,   8639, 11519, 14399, 17279, 20159, 23041, 25923, 27665),
+labels=c("3/1", "3/10", "3/20", "3/30", "4/9", "4/19", "4/29", "5/9", "5/19", "5/29", "6/4"))
+
+#define common plot background aesthetic
+commonplot <- theme(plot.background = element_rect(fill="snow"),
+        panel.background = element_rect(fill="white"))
+```
+
+Various graphical representations of data observations.
+
+
+```{r message= FALSE}
+#Temperature over Time Intervals smooth plot
+Temp_smooth1 <- ggplot(WL3, mapping=aes(TimeInt,Temp)) +geom_smooth(color="firebrick")+geom_point(alpha=0.01,  color="skyblue", size=0.5)+
+labs(x="Time Intervals",  y="Temperature °F", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Temperature °F" , subtitle ="March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL" )+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+Temp_smooth1
+
+#Relative Humidity Percentage over Time Intervals smooth plot
+HumidPerc_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, HumidPerc)) + geom_point(alpha=0.05, color="skyblue", size=0.5) + geom_smooth(color="blue")+
+  labs(x= "Time Intervals", y= "Relative Humidity %", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle ("Relative Humidity Percentage", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL" )+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+HumidPerc_smooth1
+
+#Dew point over Time Int smooth plot
+DewPoint_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, DewPoint)) + geom_smooth(color="orange")+
+geom_point(alpha=0.01, color="skyblue", size=0.5)+
+labs(x= "Time Intervals", y= "Dew Point °F", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Dew Point °F", subtitle = "March 1 - June 4, 2017\n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+DewPoint_smooth1 
+
+#Wet Bulb °F over Time Intervals smooth plot
+WetBulb_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, WetBulb)) + geom_smooth (color="deeppink1")+ geom_point(alpha=0.01, color="skyblue", size=0.5)+
+labs(x= "Time Intervals", y= "Wet Bulb °F", caption= "(One Time Interval Recorded Every Five Minutes)") + ggtitle("Wet Bulb °F", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  coord_cartesian(ylim = c(40, 90))+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+WetBulb_smooth1
+
+#Wind Speed over Time Int Smooth plot
+WindSpeed_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, WindSpeed)) + 
+geom_smooth(color= "purple") +geom_point(alpha=0.05,    color="skyblue", size=0.5)+ labs(x="Time Intervals", y= "Miles Per Hour", caption= "(One Time Interval Recorded Every Five Minutes)")+ 
+  ggtitle("Wind Speed in Miles Per Hour", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+WindSpeed_smooth1
+
+#Wind Chill °F over Time Intervals smooth plot
+WindChill_smooth1 <- ggplot(WL3, mapping = aes(TimeInt,WindChill)) + 
+geom_smooth(color= "darkblue") + geom_point(alpha=0.01,  color="skyblue", size=0.5) + labs(x="Time Intervals",  y= "Wind Chill °F", caption= "(One Time Interval Recorded Every Five Minutes)") +
+  ggtitle("Wind Chill °F", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+WindChill_smooth1
+
+#Barometric Pressure over Time Intervals smooth plot
+BaroPres_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, BaroPres))+ 
+  geom_smooth(color="red")+geom_point(alpha=0.01, color="skyblue", size=0.5)+ labs(x="Time Intervals", y= "Inches of Hg", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Barometric Pressure in Inches of Mercury", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+BaroPres_smooth1
+
+#Rain Rate over Time Intervals smooth plot
+RainRate_smooth1 <- ggplot(WL3, mapping = aes(TimeInt,RainRate))+
+  geom_smooth(color="royalblue")+ geom_smooth(color= "orchid1", method = "lm", se = F) + labs(x= "Time Intervals", y= "Inches Per Hour", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Precipitation Rate in Inches Per Hour", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+RainRate_smooth1
+
+#Light % over Time Intervals smooth plot (with scatter plot background)
+LightPerc_smooth1 <- ggplot(WL3, mapping = aes(TimeInt, LightPerc))+ 
+  geom_smooth(color="gold", method="lm", se=F)+ geom_point(alpha=0.1, color="skyblue", size=0.3)+ geom_smooth(color="sienna1")+labs(x= "Time Intervals", y= "Light %", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Light Percentage", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) +
+coord_cartesian(ylim = c(0,35)) + tendays + commonplot
+
+LightPerc_smooth1
+
+#Light % over Time Intervals smooth plot (clearly visible increase)
+LightPerc_smooth2 <- ggplot(WL3, mapping = aes(TimeInt, LightPerc))+ 
+  geom_smooth(color="gold", method="lm", se=F)+ geom_smooth(color="sienna1")+labs(x= "Time Intervals", y= "Light %", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Light Percentage", subtitle = "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL")+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8)) + tendays + commonplot
+
+LightPerc_smooth2
+
+```
+
+####Campus Visualization
+In order to aid comprehension of wind direction, it is important to provide map images of Saint Thomas University campus. The package ggmap is used extensively for map images.
+
+```{r  message=FALSE}
+#Google Hybrid Map centered on whole campus
+STU_Hyb <- get_map(location= c(lon= -80.25555, lat= 25.92325), zoom = 17, maptype = "hybrid")
+
+STU_Hyb1 <- ggmap(STU_Hyb, extent = "device")+ geom_point(data = NULL, aes(x = -80.25375, y = 25.92312),  
+   lwd = 3, colour = "red") + geom_text(aes(label= "BC Weather Station"), color= "red", x=-80.2540, y=25.9236, size= 4)+
+  ggtitle("Biscayne College Weather Station", subtitle = "Saint Thomas University, Miami, FL") + 
+  theme(plot.title = element_text(color= "red")) 
+
+suppressMessages(STU_Hyb1)
+
+#Google Hybrid Map centered on Biscayne College
+BC_Hyb <- get_map(location= c(lon= -80.25405, lat= 25.92325), zoom = 17, maptype = "hybrid")
+
+BC_Hyb1 <- ggmap(BC_Hyb, extent = "device")+ geom_point(data = NULL, aes(x = -80.25375, y = 25.92312),  
+   lwd = 3, colour = "red") + geom_text(aes(label= "BC Weather Station"), color= "red", x=-80.2540, y=25.9236, size= 4) +   ggtitle("Biscayne College Weather Station", subtitle = "Saint Thomas University, Miami, FL") + theme(plot.title = element_text(color= "red")) 
+
+BC_Hyb1
+```
+
+####Clean WL3 to Create a Wind Rose
+
+Wind roses are used to visualize wind direction. WL3 contains some blank observations for the wind direction variable.
+
+```{r  message=FALSE}
+#Clean WL3 of blank observations in wind direction variavble 
+Rose <- subset(WL3, WindDir != "") #remove blank records
+
+Rose <- factor(Rose$WindDir) #save changes made by subset
+
+Rose <- factor(Rose, levels = c("N","NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")) #reorder by direction instead of alphabetically
+```
+####Create Wind Rose
+
+```{r  message=FALSE}
+#Standard Wind Rose
+Rose1 <- ggplot(data.frame(Rose), aes(x=Rose, fill=Rose))+
+  geom_bar(stat="count",width=1,colour="black",size=0.1, alpha= 0.5)+
+  coord_polar(theta = "x", start=6.0729, direction = 1)+
+  scale_color_discrete ()+ ggtitle("Frequency Wind Rose", subtitle= "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL") + 
+  xlab("Wind Direction Recorded Every Five Minutes")+ylab("")+ guides(fill=guide_legend(title="Direction")) + 
+  theme(plot.title = element_text(size=18, face= "bold", color = "red"), axis.title.x = element_text(size= 7), axis.text.y=element_blank(), axis.ticks.y = element_blank()) 
+
+Rose1
+```
+
+####Create Wind Rose to be Used on Google Map Image
+
+To ensure aesthetic quality make text color lighter, background and plot transparent, remove gridlines, and remove legend. 
+
+```{r  message=FALSE}
+WindRose2 <- ggplot(data.frame(Rose), aes(x=Rose, fill=Rose))+
+  geom_bar(stat="count",width=1,colour="black",size=0.1, alpha= 0.5)+
+  coord_polar(theta = "x", start=6.075, direction = 1)+
+  scale_color_discrete ()+ ggtitle("Frequency Wind Rose")+
+  xlab("Wind Direction Recorded Every Five Minutes")+ ylab("")+ guides(fill=guide_legend(title="Direction")) + theme(plot.title = element_text(size=18, face= "bold", color = "burlywood1", vjust = -3, hjust = -0.15), axis.title.x = element_text(size= 8, color = "cornsilk1", hjust = 1.05, vjust = 1.4), 
+        axis.text.y=element_blank(), axis.ticks.y = element_blank(), axis.text.x = element_text(colour = "cornsilk2", size= 12, face = "bold"),
+        legend.position = "none")+
+  theme(panel.grid.major = element_line(colour = NA), axis.line = element_line(colour = NA), plot.background = element_rect(fill= "transparent", colour= NA), panel.background = element_rect(fill= "transparent", colour = NA))
+
+WindRose2
+```
+
+####Wind Rose Map
+
+The EBImage package allows for the images of WindRose2 and a Google Map to be transposed over each other. 
+
+```{r message=FALSE}
+#Map Centered on Biscayne College
+BC <- get_map(location= c(lon= -80.25405, lat= 25.92325), zoom = 17, maptype = "hybrid")
+
+Map_BC <- ggmap(BC, extent = "device")
+
+Map_BC
+
+#Map Centered on STU Campus
+STU <- get_map(location = c(lon=-80.25555, lat= 25.92325 ), zoom = 17, maptype = "hybrid")
+
+Map_STU <- ggmap(STU, extent = "device")
+
+Map_STU
+```
+
+####Save WindRose2, Map_BC, and Map_STU as png Files
+
+EBImage needs image files, such as png, in order to manipulate images.
+
+```{r  message=FALSE}
+ggsave(WindRose2, file="WindRose2.png", bg= "transparent", device = NULL )
+
+ggsave(Map_BC, file= "Map_BC.png", device = NULL)
+
+ggsave(Map_STU, file= "Map_STU.png", device = NULL)
+```
+
+####Read Images Back to R
+
+Use readImage function to read the images into R.
+
+```{r  message=FALSE}
+WindRose2_png <- readImage("/Users/KadenLoring/Documents/SRI_17/rscriptsSRI/Pub/WindRose2.png")
+
+Map_BC_png <- readImage("/Users/KadenLoring/Documents/SRI_17/rscriptsSRI/Pub/Map_BC.png")
+
+Map_STU_png <- readImage("/Users/KadenLoring/Documents/SRI_17/rscriptsSRI/Pub/Map_STU.png")
+```
+
+####Transpose Wind Rose Image Onto Map Image
+
+```{r  message=FALSE}
+#Wind Rose Map centered on Biscayne College
+WindRoseMap1 <- (WindRose2_png + Map_BC_png)
+
+display(WindRoseMap1, method = "raster")
+
+#Wind Rose Map centered on STU campus
+WindRoseMap2 <- (WindRose2_png + Map_STU_png)
+
+display(WindRoseMap2, method = "raster")
+```
+
+
+####Wind Direction Frequency Bar plot
+
+Additionally, to aid in understanding wind direction frequency, I have added a frequency bar plot.
+
+```{r  message=FALSE}
+#Barplot of Wind Directions 
+WindDir_Barplot <- ggplot(data.frame(Rose), aes(x=Rose, fill= Rose))+ geom_bar()+
+  ggtitle("Wind Direction Frequency Barplot", subtitle= "March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL" )+
+  labs(x="Wind Direction", y="Frequency", caption= "Direction Recorded Every Five Minutes")+theme(plot.caption = element_text(size = 8))+
+  theme(plot.title = element_text(color = "red", face = "bold"), legend.title = element_text(size = 8), legend.text = element_text(size=7)) + guides(fill=guide_legend(title="Direction"))+
+  scale_color_discrete() + 
+  theme(plot.title = element_text(color="Red", face = "bold"), 
+  plot.caption = element_text(size= 8), axis.text.x= element_text(size=5)) + commonplot
+
+WindDir_Barplot
+```
+
+####Measures of Air Humidity
+
+The measurements of air temperature (dry bulb temperature), wet bulb temperature, and dew point temperature are all related.  
+
+Dry bulb temperature is a measure of ambient air temperature without effect of air moisture taken into account.  
+
+Wet bulb temperature is a measure of adiabatic saturation temperature. Wet bulb takes into account the cooling effect of evaporation on temperature. Wet bulb is always between dry bulb and dew point. [When wet bulb equals dry bulb temperature, a system is said to be in 100% humidity, or saturation].
+
+Dew point temperature is a measure of the temperature at which water vapor begins to condense out of the air. If dew point is close to dry bulb temperature, the relative humidity is high; and vice versa. Dew point temperature is always less than or equal to dry bulb temperature.
+
+```{r  message=FALSE}
+#Wet Bulb should always be between ambient temperature (dry bulb) and Dew point
+
+HumidityMeasures <- ggplot()+
+  geom_smooth(data = WL3, mapping = aes(TimeInt, Temp, color = "firebrick"))+
+  geom_smooth(data = WL3, mapping = aes(TimeInt, WetBulb, color= "royalblue"))+
+  geom_smooth(data = WL3, mapping = aes(TimeInt, DewPoint, color= "green"))+
+  labs(x="Time Intervals",  y="Degrees Fahrenheit", caption= "(One Time Interval Recorded Every Five Minutes)")+
+  ggtitle("Measures of Humidity" , subtitle ="March 1 - June 4, 2017 \n Saint Thomas University, Miami, FL" )+
+  theme(plot.title = element_text(color="Red", face = "bold"), plot.caption = element_text(size= 8), legend.title = element_text(color = "red"))+
+  guides(color=guide_legend(title="Measurements"))+
+  scale_color_discrete(labels= c("Dry Bulb Temperature", "Dew Point Temperature", "Wet Bulb Temperature")) + commonplot
+  
+HumidityMeasures
+```
